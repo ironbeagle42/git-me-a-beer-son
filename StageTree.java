@@ -57,7 +57,8 @@ public class StageTree {
             }
         }
 
-        return String.join("\n", contents);
+        String finalContents =  String.join("\n", contents);
+        return "tree " + HashFile.hashString(finalContents) + " git-me-a-beer-son";
     }
 
     interface StageItem {
@@ -71,6 +72,6 @@ public class StageTree {
     }
 
     record StageFolder(Path path) implements StageItem {
-
+        
     }
 }

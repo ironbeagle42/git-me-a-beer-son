@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -11,6 +12,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HexFormat;
@@ -21,18 +23,6 @@ import java.util.zip.GZIPOutputStream;
 public class Git {
     public static void main(String[] args) throws IOException {
         init();
-        saveBlob("./Git.java");
-        updateIndex("./Git.java");
-
-        saveBlob("./git/head");
-        updateIndex("./git/head");
-
-        saveBlob("./readme.md");
-        updateIndex("./readme.md");
-
-        saveBlob("./readme.md");
-        updateIndex("./readme.md");
-
 
         saveBlob("./tree-test/docs/hello.txt");
         updateIndex("./tree-test/docs/hello.txt");
@@ -43,13 +33,15 @@ public class Git {
         saveBlob("./tree-test/notes.txt");
         updateIndex("./tree-test/notes.txt");
 
+        saveBlob("./testfile.txt");
+        updateIndex("./testfile.txt");
+
         var entries = Files.readAllLines(Path.of("./git/index"));
         var tree = new StageTree(entries);
         var to_write = tree.build_index(new StageTree.StageFolder(Path.of("git-me-a-beer-son")));
+        System.out.println(to_write);
 
-        System.out.println();
-
-        Files.write(Path.of("./git/index"), to_write.getBytes());
+        System.out.println(commit("this is a commit", "me"));
     }
 
     public static void init() {
@@ -90,7 +82,7 @@ public class Git {
         try {
             file = Files.readAllBytes(path);
         } catch (Exception e) {
-            System.out.println("Error: No file was found at the given path");
+            // System.out.println("Error: No file was found at the given path");
             return;
         }
         Path save = Paths.get("./git/objects/" + HashFile.hashFile(filePath));
@@ -109,6 +101,7 @@ public class Git {
             return;
         }
         String filePathHash = HashFile.hashFile(filePath);
+        System.out.println(filePathHash);
         boolean hasAdded = true;
         String[][] index = null;
         try (BufferedReader indexReader = new BufferedReader(Files.newBufferedReader(indexPath))) {
@@ -135,8 +128,8 @@ public class Git {
                 print.append("\n" + index[i][0] + " " + index[i][1]);
             }
             if (hasAdded)
-                print.append(
-                        "\n" + filePathHash + " " + home.getParent().getFileName() + filePath.substring(1));
+                print.append("\n" + filePathHash + " " + home.getParent().getFileName()
+                        + filePath.substring(1));
             indexWriter.write(print.substring(1));
         } catch (Exception e) {
             System.err.println(e);
@@ -150,7 +143,7 @@ public class Git {
         try {
             file = Files.readAllBytes(path);
         } catch (Exception e) {
-            System.out.println("Error: No file was found at the given path");
+            // System.out.println("Error: No file was found at the given path");
             return null;
         }
         return file.toString(); // compress(file).toString();
@@ -181,7 +174,7 @@ public class Git {
             byte[] decomp = decompress(file);
             return new String(decomp, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.out.println("Error: No file was found at the given path");
+            // System.out.println("Error: No file was found at the given path");
         }
         return null;
     }
@@ -205,5 +198,37 @@ public class Git {
             System.err.println(e);
         }
         return null;
+    }
+
+    public static String commit(String message, String author) {
+        ArrayList<String> commitFile = new ArrayList<>();
+        List<String> entries;
+        String rootTreeHash = "";
+        try {
+            entries = Files.readAllLines(Path.of("./git/index"));
+            var tree = new StageTree(entries);
+            var to_write =
+                    tree.build_index(new StageTree.StageFolder(Path.of("git-me-a-beer-son")));
+            rootTreeHash = to_write.split(" ")[1];
+            commitFile.add("tree: " + rootTreeHash);
+            if (Files.size(Paths.get("git/HEAD")) > 0) {
+                BufferedReader headReader = new BufferedReader(new FileReader("git/HEAD"));
+                commitFile.add("parent: " + headReader.readLine());
+                headReader.close();
+            }
+            FileWriter headWriter = new FileWriter("git/HEAD");
+            headWriter.write(rootTreeHash);
+            headWriter.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+
+        commitFile.add("author: " + author);
+        commitFile.add("date: " + LocalDateTime.now());
+        commitFile.add("message: " + message);
+        
+        return String.join("\n", commitFile);
     }
 }
