@@ -30,6 +30,19 @@ public class Git {
         saveBlob("./readme.md");
         updateIndex("./readme.md");
 
+        saveBlob("./readme.md");
+        updateIndex("./readme.md");
+
+
+        saveBlob("./tree-test/docs/hello.txt");
+        updateIndex("./tree-test/docs/hello.txt");
+
+        saveBlob("./tree-test/docs/world.txt");
+        updateIndex("./tree-test/docs/world.txt");
+
+        saveBlob("./tree-test/notes.txt");
+        updateIndex("./tree-test/notes.txt");
+
         var entries = Files.readAllLines(Path.of("./git/index"));
         var tree = new StageTree(entries);
         var to_write = tree.build_index(new StageTree.StageFolder(Path.of("git-me-a-beer-son")));
@@ -95,36 +108,36 @@ public class Git {
             System.out.println("Error: Repository has not been initialized");
             return;
         }
-        String hash = HashFile.hashFile(filePath);
-        boolean add = true;
+        String filePathHash = HashFile.hashFile(filePath);
+        boolean hasAdded = true;
         String[][] index = null;
-        try (BufferedReader br = new BufferedReader(Files.newBufferedReader(indexPath))) {
+        try (BufferedReader indexReader = new BufferedReader(Files.newBufferedReader(indexPath))) {
             index = new String[(int) Files.lines(indexPath).count()][2];
             for (String[] line : index) {
-                String readLine = br.readLine();
+                String readLine = indexReader.readLine();
                 line[0] = readLine.substring(0, readLine.indexOf(' '));
                 line[1] = readLine.substring(readLine.indexOf(' ') + 1);
             }
         } catch (Exception e) {
             System.err.println(e);
         }
-        try (BufferedWriter bw = new BufferedWriter(Files.newBufferedWriter(indexPath))) {
+        try (BufferedWriter indexWriter = new BufferedWriter(Files.newBufferedWriter(indexPath))) {
             StringBuilder print = new StringBuilder();
             for (int i = 0; i < index.length; i++) {
                 if (index[i][1].equals(home.getParent().getFileName() + filePath.substring(1))
-                        && !index[i][0].equals(hash)) {
-                    index[i][0] = hash;
-                    add = false;
+                        && !index[i][0].equals(filePathHash)) {
+                    index[i][0] = filePathHash;
+                    hasAdded = false;
                 } else if (index[i][1]
                         .equals(home.getParent().getFileName() + filePath.substring(1))
-                        && index[i][0].equals(hash))
-                    add = false;
+                        && index[i][0].equals(filePathHash))
+                    hasAdded = false;
                 print.append("\n" + index[i][0] + " " + index[i][1]);
             }
-            if (add)
+            if (hasAdded)
                 print.append(
-                        "\n" + hash + " " + home.getParent().getFileName() + filePath.substring(1));
-            bw.write(print.substring(1));
+                        "\n" + filePathHash + " " + home.getParent().getFileName() + filePath.substring(1));
+            indexWriter.write(print.substring(1));
         } catch (Exception e) {
             System.err.println(e);
         }
@@ -140,7 +153,7 @@ public class Git {
             System.out.println("Error: No file was found at the given path");
             return null;
         }
-        return file.toString(); //compress(file).toString();
+        return file.toString(); // compress(file).toString();
     }
 
     private static byte[] compress(byte[] file) {
