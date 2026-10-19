@@ -87,7 +87,8 @@ public class Git {
         }
         Path save = Paths.get("./git/objects/" + HashFile.hashFile(filePath));
         try {
-            Files.write(save, compress(file));
+            Files.write(save, file);
+            // Files.write(save, compress(file));
         } catch (IOException e) {
             System.err.println(e);
         }
@@ -216,19 +217,22 @@ public class Git {
                 commitFile.add("parent: " + headReader.readLine());
                 headReader.close();
             }
+            commitFile.add("author: " + author);
+            commitFile.add("date: " + LocalDateTime.now());
+            commitFile.add("message: " + message);
+            String returnFile = String.join("\n", commitFile);
             FileWriter headWriter = new FileWriter("git/HEAD");
-            headWriter.write(rootTreeHash);
+            String commitHash = HashFile.hashString(returnFile);
+            headWriter.write(commitHash);
             headWriter.close();
+            Files.writeString(Path.of("./git/objects/" + commitHash), returnFile);
+            return returnFile;
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+        return null;
 
 
-        commitFile.add("author: " + author);
-        commitFile.add("date: " + LocalDateTime.now());
-        commitFile.add("message: " + message);
-        
-        return String.join("\n", commitFile);
     }
 }
