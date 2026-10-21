@@ -37,12 +37,12 @@ public class Git {
         saveBlob("./testfile.txt");
         updateIndex("./testfile.txt");
 
-        // var entries = Files.readAllLines(Path.of("./git/index"));
-        // var tree = new StageTree(entries);
-        // var to_write = tree.build_index(new StageTree.StageFolder(Path.of("git-me-a-beer-son")));
-        // System.out.println(to_write);
+        var entries = Files.readAllLines(Path.of("./git/index"));
+        var tree = new StageTree(entries);
+        var to_write = tree.build_index(new StageTree.StageFolder(Path.of("git-me-a-beer-son")));
+        System.out.println(to_write);
 
-        // System.out.println(commit("this is a commit", "me"));
+        System.out.println(commit("this is a commit", "me"));
         regenerateIndex("e2b6c5dd313640b728825d97c3f4f5ce3737a99f");
     }
 
