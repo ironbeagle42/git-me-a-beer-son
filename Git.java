@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -36,12 +37,13 @@ public class Git {
         saveBlob("./testfile.txt");
         updateIndex("./testfile.txt");
 
-        var entries = Files.readAllLines(Path.of("./git/index"));
-        var tree = new StageTree(entries);
-        var to_write = tree.build_index(new StageTree.StageFolder(Path.of("git-me-a-beer-son")));
-        System.out.println(to_write);
+        // var entries = Files.readAllLines(Path.of("./git/index"));
+        // var tree = new StageTree(entries);
+        // var to_write = tree.build_index(new StageTree.StageFolder(Path.of("git-me-a-beer-son")));
+        // System.out.println(to_write);
 
-        System.out.println(commit("this is a commit", "me"));
+        // System.out.println(commit("this is a commit", "me"));
+        regenerateIndex("e2b6c5dd313640b728825d97c3f4f5ce3737a99f");
     }
 
     public static void init() {
@@ -102,7 +104,7 @@ public class Git {
             return;
         }
         String filePathHash = HashFile.hashFile(filePath);
-        System.out.println(filePathHash);
+        // System.out.println(filePathHash);
         boolean hasAdded = true;
         String[][] index = null;
         try (BufferedReader indexReader = new BufferedReader(Files.newBufferedReader(indexPath))) {
@@ -232,7 +234,53 @@ public class Git {
             e.printStackTrace();
         }
         return null;
+    }
 
+    public static void regenerateIndex(String commitHash) {
+        try {
+            BufferedReader headReader = new BufferedReader(new FileReader("git/objects/" + commitHash));
+            String rootHash = headReader.readLine().split(" ")[1];
+            headReader.close();
+            BufferedWriter newIndexWriter = new BufferedWriter(new FileWriter("git/newIndex"));
+            BufferedReader indexReader = new BufferedReader(new FileReader("git/index"));
+            ArrayList<String> oldIndex = new ArrayList<>();
+            while (indexReader.ready()) {
+                oldIndex.add(indexReader.readLine());
+            }
+            newIndexWriter.write(String.join("\n", oldIndex));
+            newIndexWriter.close();
+            indexReader.close();
+            BufferedWriter indexWriter = new BufferedWriter(new FileWriter("git/index"));
+            String indexString = regenerateIndex(rootHash, "git-me-a-beer-son");
+            indexWriter.write(indexString);
+            indexWriter.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
 
+    public static String regenerateIndex(String rootHash, String folderName) {
+        try {
+            ArrayList<String> finalIndex = new ArrayList<>();
+            BufferedReader rootReader = new BufferedReader(new FileReader("git/objects/" + rootHash));
+            ArrayList<String[]> rootFiles = new ArrayList<>();
+            while (rootReader.ready()) {
+                rootFiles.add(rootReader.readLine().split(" "));
+            }
+            rootReader.close();
+            for (String[] file : rootFiles) {
+                if (file[0].equals("tree")) {
+                    finalIndex.add(regenerateIndex(file[1], folderName + "/" + file[2]));
+                } else {
+                    finalIndex.add(file[1] + " " + folderName + "/" + file[2]);
+                }
+            }
+            return String.join("\n", finalIndex);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return null;
     }
 }
